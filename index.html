@@ -21,6 +21,8 @@ input,select,button.action{width:100%;padding:12px;margin:5px 0;box-sizing:borde
 .kpi{font-size:24px;font-weight:bold}
 .small{font-size:14px;color:#666}
 </style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#24384d">
 </head>
 <body>
 
@@ -232,6 +234,11 @@ const expenses=db.expenses.reduce((a,b)=>a+b.amount,0);
 stats.innerHTML='💰 Zusatzeinnahmen: '+extras.toFixed(2)+' €<br>💸 Ausgaben: '+expenses.toFixed(2)+' €';
 }
 render();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js');
+}
 </script>
 </body>
 </html>
