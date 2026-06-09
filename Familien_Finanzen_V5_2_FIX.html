@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Familien Finanzen V5</title>
+<style>
+body{margin:0;font-family:Arial;background:#ececec}
+header{background:#24384d;color:#fff;padding:25px 20px;text-align:center}
+#menuBtn{position:fixed;top:15px;left:10px;background:none;border:none;color:white;font-size:32px;z-index:9999}
+.drawer{position:fixed;left:-280px;top:0;width:260px;height:100%;background:#24384d;transition:.3s;z-index:9998;padding-top:70px}
+.drawer.open{left:0}
+.drawer button{display:block;width:100%;padding:15px;border:none;background:none;color:white;text-align:left;font-size:20px}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9997}
+.overlay.show{display:block}
+.content{padding:15px}
+.card{background:white;border-radius:15px;padding:15px;margin-bottom:15px}
+.section{display:none}
+.section.active{display:block}
+input,select,button.action{width:100%;padding:12px;margin:5px 0;box-sizing:border-box}
+.kpi{font-size:24px;font-weight:bold}
+.small{font-size:14px;color:#666}
+</style>
+</head>
+<body>
+
+<button id="menuBtn" onclick="openMenu()">☰</button>
+<header><h1>💰 Familien Finanzen V5</h1></header>
+
+<div id="overlay" class="overlay" onclick="closeMenu()"></div>
+
+<div id="drawer" class="drawer">
+<button onclick="showPage('dashboard')">🏠 Dashboard</button>
+<button onclick="showPage('income')">💰 Einnahmen</button>
+<button onclick="showPage('extra')">➕ Zusatzeinnahmen</button>
+<button onclick="showPage('expenses')">💸 Ausgaben</button><button onclick="showPage('stats')">📊 Statistik</button><button onclick="showPage('backup')">💾 Backup</button>
+</div>
+
+<div class="content">
+
+<div id="dashboard" class="section active">
+<div class="card">
+<h2>📊 Dashboard</h2>
+<p>👨 Sascha: <b id="dS">0 €</b></p>
+<p>👩 Niki: <b id="dN">0 €</b></p>
+<p>💰 Einnahmen Gesamt: <span id="dIncome" class="kpi">0 €</span></p>
+<p>💸 Ausgaben Gesamt: <span id="dExpense" class="kpi">0 €</span></p>
+<p>✅ Verfügbar: <span id="dRest" class="kpi">0 €</span></p>
+</div>
+</div>
+
+<div id="income" class="section">
+<div class="card">
+<h2>💰 Feste Einnahmen</h2>
+<input id="saschaIncome" type="number" placeholder="Sascha">
+<input id="nikiIncome" type="number" placeholder="Niki">
+<button class="action" onclick="saveIncome()">Speichern</button>
+</div>
+</div>
+
+<div id="extra" class="section">
+<div class="card">
+<h2>➕ Zusatzeinnahmen</h2>
+<input id="extraText" placeholder="Beschreibung">
+<input id="extraAmount" type="number" placeholder="Betrag">
+<button class="action" onclick="addExtra()">Hinzufügen</button>
+<div id="extraList"></div>
+</div>
+</div>
+
+<div id="expenses" class="section">
+<div class="card">
+<h2>💸 Ausgaben</h2>
+<input id="expenseText" placeholder="Beschreibung">
+<select id="expenseCat">
+<option>Haushalt</option>
+<option>Auto</option>
+<option>Tiere</option>
+<option>Lebensmittel</option>
+<option>Freizeit</option>
+<option>Sonstiges</option>
+</select>
+<input id="expenseAmount" type="number" placeholder="Betrag">
+<button class="action" onclick="addExpense()">Hinzufügen</button>
+<div id="expenseList"></div>
+</div>
+</div>
+
+
+<div id="stats" class="section">
+<div class="card">
+<h2>📊 Statistik</h2>
+<div id="statsContent"></div>
+</div>
+</div>
+
+<div id="backup" class="section">
+<div class="card">
+<h2>💾 Backup</h2>
+<button class="action" onclick="exportBackup()">Backup exportieren</button>
+<input type="file" onchange="importBackup(this)">
+</div>
+</div>
+
+</div>
+
+<script>
+let db=JSON.parse(localStorage.getItem('familien_v5')||'{"sascha":0,"niki":0,"extra":[],"expenses":[]}');
+
+function openMenu(){
+document.getElementById('drawer').classList.add('open');
+document.getElementById('overlay').classList.add('show');
+}
+function closeMenu(){
+document.getElementById('drawer').classList.remove('open');
+document.getElementById('overlay').classList.remove('show');
+}
+function showPage(id){
+document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
+document.getElementById(id).classList.add('active');
+closeMenu();
+}
+function saveDB(){
+localStorage.setItem('familien_v5',JSON.stringify(db));
+
+const stats=document.getElementById('statsContent');
+if(stats){
+const extras=db.extra.reduce((a,b)=>a+b.amount,0);
+const expenses=db.expenses.reduce((a,b)=>a+b.amount,0);
+stats.innerHTML='💰 Zusatzeinnahmen: '+extras.toFixed(2)+' €<br>💸 Ausgaben: '+expenses.toFixed(2)+' €';
+}
+render();
+}
+function saveIncome(){
+db.sascha=Number(document.getElementById('saschaIncome').value||0);
+db.niki=Number(document.getElementById('nikiIncome').value||0);
+saveDB();
+}
+function addExtra(){
+db.extra.push({
+text:document.getElementById('extraText').value,
+amount:Number(document.getElementById('extraAmount').value||0)
+});
+document.getElementById('extraText').value='';
+document.getElementById('extraAmount').value='';
+saveDB();
+}
+function addExpense(){
+db.expenses.push({
+text:document.getElementById('expenseText').value,
+cat:document.getElementById('expenseCat').value,
+amount:Number(document.getElementById('expenseAmount').value||0)
+});
+document.getElementById('expenseText').value='';
+document.getElementById('expenseAmount').value='';
+saveDB();
+}
+function render(){
+let extras=db.extra.reduce((a,b)=>a+b.amount,0);
+let expenses=db.expenses.reduce((a,b)=>a+b.amount,0);
+let income=db.sascha+db.niki+extras;
+let rest=income-expenses;
+
+document.getElementById('dS').textContent=db.sascha.toFixed(2)+' €';
+document.getElementById('dN').textContent=db.niki.toFixed(2)+' €';
+document.getElementById('dIncome').textContent=income.toFixed(2)+' €';
+document.getElementById('dExpense').textContent=expenses.toFixed(2)+' €';
+document.getElementById('dRest').textContent=rest.toFixed(2)+' €';
+
+document.getElementById('saschaIncome').value=db.sascha;
+document.getElementById('nikiIncome').value=db.niki;
+
+document.getElementById('extraList').innerHTML=db.extra.map((e,i)=>
+'<div class="card">'+e.text+' - '+e.amount.toFixed(2)+' € <button onclick="editExtra('+i+')">✏️</button> <button onclick="delExtra('+i+')">🗑️</button></div>'
+).join('');
+
+document.getElementById('expenseList').innerHTML=db.expenses.map((e,i)=>
+'<div class="card">['+e.cat+'] '+e.text+' - '+e.amount.toFixed(2)+' € <button onclick="editExpense('+i+')">✏️</button> <button onclick="delExpense('+i+')">🗑️</button></div>'
+).join('');
+}
+
+function editExtra(i){
+ const txt=prompt('Beschreibung',db.extra[i].text);
+ if(txt===null)return;
+ const amt=prompt('Betrag',db.extra[i].amount);
+ if(amt===null)return;
+ db.extra[i].text=txt;
+ db.extra[i].amount=Number(amt||0);
+ saveDB();
+}
+
+function editExpense(i){
+ const txt=prompt('Beschreibung',db.expenses[i].text);
+ if(txt===null)return;
+ const cat=prompt('Kategorie',db.expenses[i].cat);
+ if(cat===null)return;
+ const amt=prompt('Betrag',db.expenses[i].amount);
+ if(amt===null)return;
+ db.expenses[i].text=txt;
+ db.expenses[i].cat=cat;
+ db.expenses[i].amount=Number(amt||0);
+ saveDB();
+}
+
+function delExtra(i){db.extra.splice(i,1);saveDB();}
+function delExpense(i){db.expenses.splice(i,1);saveDB();}
+
+function exportBackup(){
+const blob=new Blob([JSON.stringify(db)],{type:'application/json'});
+const a=document.createElement('a');
+a.href=URL.createObjectURL(blob);
+a.download='FamilienFinanzenV51_Backup.json';
+a.click();
+}
+function importBackup(input){
+const f=input.files[0];
+if(!f)return;
+const r=new FileReader();
+r.onload=function(e){
+db=JSON.parse(e.target.result);
+saveDB();
+};
+r.readAsText(f);
+}
+
+
+
+const stats=document.getElementById('statsContent');
+if(stats){
+const extras=db.extra.reduce((a,b)=>a+b.amount,0);
+const expenses=db.expenses.reduce((a,b)=>a+b.amount,0);
+stats.innerHTML='💰 Zusatzeinnahmen: '+extras.toFixed(2)+' €<br>💸 Ausgaben: '+expenses.toFixed(2)+' €';
+}
+render();
+</script>
+</body>
+</html>
